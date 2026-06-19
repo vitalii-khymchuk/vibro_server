@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Signal Sender</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      max-width: 420px;
+    }
+
+    fieldset {
+      margin-top: 16px;
+      padding: 12px;
+    }
+
+    .row {
+      margin-top: 12px;
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 10px 14px;
+      width: 100%;
+    }
+
+    #status {
+      margin-top: 16px;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h2>Signal Sender</h2>
+
+  <div class="row">
+    <label for="numberInput">Номер (0-99)</label><br>
+    <input id="numberInput" type="number" min="0" max="99" value="12">
+  </div>
+
+  <fieldset>
+    <legend>Варіант</legend>
+    <label><input type="radio" name="letter" value="a" checked> a</label><br>
+    <label><input type="radio" name="letter" value="b"> b</label><br>
+    <label><input type="radio" name="letter" value="c"> c</label><br>
+    <label><input type="radio" name="letter" value="d"> d</label><br>
+    <label><input type="radio" name="letter" value="e"> e</label><br>
+    <label><input type="radio" name="letter" value="f"> f</label>
+  </fieldset>
+
+  <button id="sendButton">Відправити</button>
+  <button id="readyButton">Готовність</button>
+  <button id="problemButton">Проблема</button>
+  <button id="okButton">Ок</button>
+
+  <div id="status">Готово.</div>
+
+  <script>
+    async function postJson(url, data) {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      const json = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json.error || 'Request failed');
+      }
+
+      return json;
+    }
+
+    function selectedLetter() {
+      const radio = document.querySelector('input[name="letter"]:checked');
+      return radio ? radio.value : 'a';
+    }
+
+    document.getElementById('sendButton').addEventListener('click', async () => {
+      const number = Number(document.getElementById('numberInput').value);
+      const letter = selectedLetter();
+      const status = document.getElementById('status');
+
+      status.textContent = 'Відправляю...';
+
+      try {
+        const result = await postJson('/send-form-signal', { number, letter });
+        status.textContent =
+          'Одразу додано: ' + result.queuedNow.join(' | ') +
+          '\nЧерез 5 секунд: ' + result.queuedAfter5s.join(' | ');
+      } catch (err) {
+        status.textContent = 'Помилка: ' + err.message;
+      }
+    });
+
+    document.getElementById('readyButton').addEventListener('click', async () => {
+      const status = document.getElementById('status');
+      status.textContent = 'Відправляю готовність...';
+
+      try {
+        await postJson('/send-direct-signal', { signal: '.-.-.-' });
+        status.textContent = 'Додано: .-.-.-';
+      } catch (err) {
+        status.textContent = 'Помилка: ' + err.message;
+      }
+    });
+
+    document.getElementById('problemButton').addEventListener('click', async () => {
+      const status = document.getElementById('status');
+      status.textContent = 'Відправляю проблема...';
+
+      try {
+        await postJson('/send-direct-signal', { signal: '...---...' });
+        status.textContent = 'Додано: ...---...';
+      } catch (err) {
+        status.textContent = 'Помилка: ' + err.message;
+      }
+    });
+
+    document.getElementById('okButton').addEventListener('click', async () => {
+      const status = document.getElementById('status');
+      status.textContent = 'Відправляю ок...';
+
+      try {
+        await postJson('/send-direct-signal', { signal: '..' });
+        status.textContent = 'Додано: ..';
+      } catch (err) {
+        status.textContent = 'Помилка: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html>
