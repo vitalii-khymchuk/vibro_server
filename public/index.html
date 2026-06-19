@@ -58,11 +58,22 @@
   <div id="status">Готово.</div>
 
   <script>
+    async function getJson(url) {
+      const response = await fetch(url);
+      const json = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json.error || 'Request failed');
+      }
+
+      return json;
+    }
+
     async function postJson(url, data) {
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify(data || {})
       });
 
       const json = await response.json();
@@ -88,9 +99,7 @@
 
       try {
         const result = await postJson('/send-form-signal', { number, letter });
-        status.textContent =
-          'Одразу додано: ' + result.queuedNow.join(' | ') +
-          '\nЧерез 5 секунд: ' + result.queuedAfter5s.join(' | ');
+        status.textContent = 'Додано в чергу: ' + result.queued.join(' | ');
       } catch (err) {
         status.textContent = 'Помилка: ' + err.message;
       }
@@ -101,8 +110,8 @@
       status.textContent = 'Відправляю готовність...';
 
       try {
-        await postJson('/send-direct-signal', { signal: '.-.-.-' });
-        status.textContent = 'Додано: .-.-.-';
+        const result = await postJson('/send-direct-signal', { signal: '.-.-.-' });
+        status.textContent = 'Додано: ' + result.queued.join(' | ');
       } catch (err) {
         status.textContent = 'Помилка: ' + err.message;
       }
@@ -113,8 +122,8 @@
       status.textContent = 'Відправляю проблема...';
 
       try {
-        await postJson('/send-direct-signal', { signal: '...---...' });
-        status.textContent = 'Додано: ...---...';
+        const result = await postJson('/send-direct-signal', { signal: '...---...' });
+        status.textContent = 'Додано: ' + result.queued.join(' | ');
       } catch (err) {
         status.textContent = 'Помилка: ' + err.message;
       }
@@ -125,8 +134,8 @@
       status.textContent = 'Відправляю ок...';
 
       try {
-        await postJson('/send-direct-signal', { signal: '..' });
-        status.textContent = 'Додано: ..';
+        const result = await postJson('/send-direct-signal', { signal: '..' });
+        status.textContent = 'Додано: ' + result.queued.join(' | ');
       } catch (err) {
         status.textContent = 'Помилка: ' + err.message;
       }
