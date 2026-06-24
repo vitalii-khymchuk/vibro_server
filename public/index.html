@@ -30,10 +30,17 @@
       margin-top: 16px;
       white-space: pre-wrap;
     }
+
+    #transferState {
+      margin-top: 16px;
+      white-space: pre-wrap;
+    }
   </style>
 </head>
 <body>
   <h2>Signal Sender</h2>
+
+  <div id="transferState">Стан передачі: ...</div>
 
   <div class="row">
     <label for="numberInput">Номер (0-99)</label><br>
@@ -90,6 +97,18 @@
       return radio ? radio.value : 'a';
     }
 
+    async function refreshTransferState() {
+      try {
+        const state = await getJson('/state');
+        document.getElementById('transferState').textContent =
+          'Стан передачі: ' + (state.busy ? 'триває' : 'завершена') +
+          '\nСигналів у черзі: ' + state.signals.length;
+      } catch (err) {
+        document.getElementById('transferState').textContent =
+          'Стан передачі: помилка';
+      }
+    }
+
     document.getElementById('sendButton').addEventListener('click', async () => {
       const number = Number(document.getElementById('numberInput').value);
       const letter = selectedLetter();
@@ -100,6 +119,7 @@
       try {
         const result = await postJson('/send-form-signal', { number, letter });
         status.textContent = 'Додано в чергу: ' + result.queued.join(' | ');
+        refreshTransferState();
       } catch (err) {
         status.textContent = 'Помилка: ' + err.message;
       }
@@ -112,6 +132,7 @@
       try {
         const result = await postJson('/send-direct-signal', { signal: '.-.-.-' });
         status.textContent = 'Додано: ' + result.queued.join(' | ');
+        refreshTransferState();
       } catch (err) {
         status.textContent = 'Помилка: ' + err.message;
       }
@@ -124,6 +145,7 @@
       try {
         const result = await postJson('/send-direct-signal', { signal: '...---...' });
         status.textContent = 'Додано: ' + result.queued.join(' | ');
+        refreshTransferState();
       } catch (err) {
         status.textContent = 'Помилка: ' + err.message;
       }
@@ -136,10 +158,14 @@
       try {
         const result = await postJson('/send-direct-signal', { signal: '..' });
         status.textContent = 'Додано: ' + result.queued.join(' | ');
+        refreshTransferState();
       } catch (err) {
         status.textContent = 'Помилка: ' + err.message;
       }
     });
+
+    refreshTransferState();
+    setInterval(refreshTransferState, 1000);
   </script>
 </body>
 </html>
